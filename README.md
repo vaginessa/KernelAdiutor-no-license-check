@@ -1,3 +1,5 @@
+This is a fork of Kernel Adiutor with the license check removed.
+
 # KernelAdiutor
 
 [![Build Status](https://travis-ci.org/Grarak/KernelAdiutor.svg?branch=master)](https://travis-ci.org/Grarak/KernelAdiutor)
