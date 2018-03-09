@@ -352,9 +352,7 @@ public class MainActivity extends BaseActivity {
             if (mApplicationInfo != null && mPackageInfo != null
                     && mPackageInfo.versionCode == 130) {
                 try {
-                    mPatched = !Utils.checkMD5("5c7a92a5b2dcec409035e1114e815b00",
-                            new File(mApplicationInfo.publicSourceDir))
-                            || Utils.isPatched(mApplicationInfo);
+                    mPatched = false;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -392,22 +390,7 @@ public class MainActivity extends BaseActivity {
             MainActivity activity = mRefActivity.get();
             if (activity == null) return;
 
-            if (donationValid && mLicensedCached) {
-                activity.launch(0);
-            } else if (donationValid && mInternetAvailable) {
-                Intent intent = new Intent(Intent.ACTION_MAIN);
-                intent.setComponent(new ComponentName("com.grarak.kerneladiutordonate",
-                        "com.grarak.kerneladiutordonate.MainActivity"));
-                activity.startActivityForResult(intent, 0);
-            } else if (donationValid) {
-                activity.launch(1);
-            } else {
-                if (mPatched && !BuildConfig.DEBUG) {
-                    Answers.getInstance().logCustom(new CustomEvent("Pirated")
-                            .putCustomAttribute("android_id", Utils.getAndroidId(activity)));
-                }
-                activity.launch(mPatched ? 3 : -1);
-            }
+            activity.launch(0);
         }
     }
 
