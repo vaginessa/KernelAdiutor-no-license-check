@@ -35,7 +35,6 @@ import android.widget.TextView;
 import com.crashlytics.android.Crashlytics;
 import com.crashlytics.android.answers.Answers;
 import com.crashlytics.android.answers.CustomEvent;
-import com.google.android.gms.ads.MobileAds;
 import com.grarak.kerneladiutor.BuildConfig;
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.database.tools.profiles.Profiles;
@@ -302,9 +301,6 @@ public class MainActivity extends BaseActivity {
                 }
                 return;
             }
-
-            // Initialize Google Ads
-            MobileAds.initialize(activity, "ca-app-pub-1851546461606210~9501142287");
 
             // Execute another AsyncTask for license checking
             new LoadingTask(activity).execute();
