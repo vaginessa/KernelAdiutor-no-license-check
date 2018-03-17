@@ -21,7 +21,7 @@ package com.grarak.kerneladiutor.fragments.kernel;
 
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.fragments.ApplyOnBootFragment;
-import com.grarak.kerneladiutor.fragments.RecyclerViewFragment;
+import com.grarak.kerneladiutor.fragments.recyclerview.RecyclerViewFragment;
 import com.grarak.kerneladiutor.utils.kernel.led.LED;
 import com.grarak.kerneladiutor.utils.kernel.led.Sec;
 import com.grarak.kerneladiutor.views.recyclerview.CardView;
@@ -101,7 +101,7 @@ public class LEDFragment extends RecyclerViewFragment {
     }
 
     private void brightnessInit(List<RecyclerViewItem> items) {
-        CardView brightnessCard = new CardView(getActivity());
+        CardView brightnessCard = new CardView();
         brightnessCard.setTitle(getString(R.string.brightness));
 
         if (Sec.hasHighpowerCurrent()) {
@@ -154,7 +154,7 @@ public class LEDFragment extends RecyclerViewFragment {
     }
 
     private void delayInit(List<RecyclerViewItem> items) {
-        CardView delayCard = new CardView(getActivity());
+        CardView delayCard = new CardView();
         delayCard.setTitle(getString(R.string.delay));
 
         if (Sec.hasNotificationDelayOn()) {
@@ -210,17 +210,13 @@ public class LEDFragment extends RecyclerViewFragment {
             fade.setTitle(getString(R.string.fade));
             fade.setSummary(getString(R.string.fade_summary));
             fade.setChecked(mLED.isFadeEnabled());
-            fade.addOnSwitchListener(new SwitchView.OnSwitchListener() {
-                @Override
-                public void onChanged(SwitchView switchView, boolean isChecked) {
-                    mLED.enableFade(isChecked, getActivity());
-                }
-            });
+            fade.addOnSwitchListener((switchView, isChecked)
+                    -> mLED.enableFade(isChecked, getActivity()));
 
             items.add(fade);
         }
 
-        CardView fadeCard = new CardView(getActivity());
+        CardView fadeCard = new CardView();
         fadeCard.setTitle(getString(R.string.fade));
 
         if (Sec.hasNotificationRampControl()) {
@@ -228,12 +224,8 @@ public class LEDFragment extends RecyclerViewFragment {
             notificationRampControl.setTitle(getString(R.string.fade_ramp_control));
             notificationRampControl.setSummary(getString(R.string.fade_ramp_control_summary));
             notificationRampControl.setChecked(Sec.isNotificationRampControlEnabled());
-            notificationRampControl.addOnSwitchListener(new SwitchView.OnSwitchListener() {
-                @Override
-                public void onChanged(SwitchView switchView, boolean isChecked) {
-                    Sec.enableNotificationRampControl(isChecked, getActivity());
-                }
-            });
+            notificationRampControl.addOnSwitchListener((switchView, isChecked)
+                    -> Sec.enableNotificationRampControl(isChecked, getActivity()));
 
             fadeCard.addItem(notificationRampControl);
         }
@@ -292,12 +284,8 @@ public class LEDFragment extends RecyclerViewFragment {
         test.setTitle(getString(R.string.test));
         test.setSummary(getString(R.string.led_test_summary));
         test.setChecked(Sec.isTestingPattern());
-        test.addOnSwitchListener(new SwitchView.OnSwitchListener() {
-            @Override
-            public void onChanged(SwitchView switchView, boolean isChecked) {
-                Sec.testPattern(isChecked);
-            }
-        });
+        test.addOnSwitchListener((switchView, isChecked)
+                -> Sec.testPattern(isChecked));
 
         items.add(test);
     }

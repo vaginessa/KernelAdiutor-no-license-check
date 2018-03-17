@@ -32,16 +32,18 @@ import android.os.BatteryManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 
 import com.grarak.kerneladiutor.BuildConfig;
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.activities.MainActivity;
+import com.grarak.kerneladiutor.activities.NavigationActivity;
 import com.grarak.kerneladiutor.database.Settings;
 import com.grarak.kerneladiutor.fragments.tools.DataSharingFragment;
+import com.grarak.kerneladiutor.utils.AppSettings;
 import com.grarak.kerneladiutor.utils.Device;
 import com.grarak.kerneladiutor.utils.NotificationId;
-import com.grarak.kerneladiutor.utils.Prefs;
 import com.grarak.kerneladiutor.utils.Utils;
 import com.grarak.kerneladiutor.utils.server.ServerCreateDevice;
 
@@ -58,6 +60,9 @@ import java.util.concurrent.TimeUnit;
  */
 
 public class Monitor extends Service {
+
+    private static final String PACKAGE = Monitor.class.getCanonicalName();
+    public static final String ACTION_DISABLE = PACKAGE + ".ACTION.DISABLE";
 
     private static final String CHANNEL_ID = "monitor_notification_channel";
 
@@ -80,12 +85,12 @@ public class Monitor extends Service {
             } else {
                 mCalculating = true;
 
-                long time = System.nanoTime();
+                long time = SystemClock.elapsedRealtime();
                 int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
 
                 if (mLevel != 0 && mLevel > level && mTime != 0 && mTime < time && mLevel - level > 0) {
                     long seconds = TimeUnit.SECONDS.convert((time - mTime) / (mLevel - level),
-                            TimeUnit.NANOSECONDS);
+                            TimeUnit.MILLISECONDS);
                     if (seconds >= 100) {
                         mTimes.add(seconds);
 
@@ -117,49 +122,46 @@ public class Monitor extends Service {
     };
 
     private void postCreate(final Long[] times) {
-        if (mLevel < 15 || !Prefs.getBoolean("data_sharing", true, this)) return;
+        if (mLevel < 15 || !AppSettings.isDataSharing(this)) return;
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    JSONObject data = new JSONObject();
-                    data.put("android_id", Utils.getAndroidId(Monitor.this));
-                    data.put("android_version", Device.getVersion());
-                    data.put("kernel_version", Device.getKernelVersion(true, false));
-                    data.put("app_version", BuildConfig.VERSION_NAME);
-                    data.put("board", Device.getBoard());
-                    data.put("model", Device.getModel());
-                    data.put("vendor", Device.getVendor());
-                    data.put("cpuinfo", Utils.encodeString(Device.CPUInfo.getInstance().getCpuInfo()));
-                    data.put("fingerprint", Device.getFingerprint());
+        new Thread(() -> {
+            try {
+                JSONObject data = new JSONObject();
+                data.put("android_id", Utils.getAndroidId(Monitor.this));
+                data.put("android_version", Device.getVersion());
+                data.put("kernel_version", Device.getKernelVersion(true, false));
+                data.put("app_version", BuildConfig.VERSION_NAME);
+                data.put("board", Device.getBoard());
+                data.put("model", Device.getModel());
+                data.put("vendor", Device.getVendor());
+                data.put("cpuinfo", Utils.encodeString(Device.CPUInfo.getInstance().getCpuInfo()));
+                data.put("fingerprint", Device.getFingerprint());
 
-                    JSONArray commands = new JSONArray();
-                    Settings settings = new Settings(Monitor.this);
-                    for (Settings.SettingsItem item : settings.getAllSettings()) {
-                        commands.put(item.getSetting());
-                    }
-                    data.put("commands", commands);
-
-                    JSONArray batteryTimes = new JSONArray();
-                    for (long time : times) {
-                        batteryTimes.put(time);
-                    }
-                    data.put("times", batteryTimes);
-
-                    try {
-                        long time = 0;
-                        for (int i = 0; i < 100000; i++) {
-                            time += Utils.computeSHAHash(Utils.getRandomString(16));
-                        }
-                        data.put("cpu", time);
-                    } catch (Exception ignored) {
-                    }
-
-                    mServerCreateDevice.postDeviceCreate(data);
-                } catch (JSONException e) {
-                    e.printStackTrace();
+                JSONArray commands = new JSONArray();
+                Settings settings = new Settings(Monitor.this);
+                for (Settings.SettingsItem item : settings.getAllSettings()) {
+                    commands.put(item.getSetting());
                 }
+                data.put("commands", commands);
+
+                JSONArray batteryTimes = new JSONArray();
+                for (long time : times) {
+                    batteryTimes.put(time);
+                }
+                data.put("times", batteryTimes);
+
+                try {
+                    long time = 0;
+                    for (int i = 0; i < 100000; i++) {
+                        time += Utils.computeSHAHash(Utils.getRandomString(16));
+                    }
+                    data.put("cpu", time);
+                } catch (Exception ignored) {
+                }
+
+                mServerCreateDevice.postDeviceCreate(data);
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
         }).start();
     }
@@ -205,7 +207,8 @@ public class Monitor extends Service {
 
             Intent launchIntent = new Intent(this, MainActivity.class);
             launchIntent.setAction(Intent.ACTION_VIEW);
-            launchIntent.putExtra("section", DataSharingFragment.class.getCanonicalName());
+            launchIntent.putExtra(NavigationActivity.INTENT_SECTION,
+                    DataSharingFragment.class.getCanonicalName());
             launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
             PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
                     launchIntent, 0);
@@ -241,8 +244,10 @@ public class Monitor extends Service {
 
         @Override
         public void onReceive(final Context context, Intent intent) {
-            Prefs.saveBoolean("data_sharing", false, context);
+            AppSettings.saveDataSharing(false, context);
             context.stopService(new Intent(context, Monitor.class));
+
+            context.sendBroadcast(new Intent(ACTION_DISABLE));
         }
 
     }

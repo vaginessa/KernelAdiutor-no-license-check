@@ -19,7 +19,10 @@
  */
 package com.grarak.kerneladiutor.fragments.tools;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.support.v4.content.ContextCompat;
@@ -28,9 +31,9 @@ import android.support.v4.graphics.drawable.DrawableCompat;
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.activities.DataSharingSearchActivity;
 import com.grarak.kerneladiutor.fragments.DescriptionFragment;
-import com.grarak.kerneladiutor.fragments.RecyclerViewFragment;
+import com.grarak.kerneladiutor.fragments.recyclerview.RecyclerViewFragment;
 import com.grarak.kerneladiutor.services.monitor.Monitor;
-import com.grarak.kerneladiutor.utils.Prefs;
+import com.grarak.kerneladiutor.utils.AppSettings;
 import com.grarak.kerneladiutor.utils.Utils;
 import com.grarak.kerneladiutor.utils.ViewUtils;
 import com.grarak.kerneladiutor.views.recyclerview.RecyclerViewItem;
@@ -44,6 +47,8 @@ import java.util.List;
 
 public class DataSharingFragment extends RecyclerViewFragment {
 
+    private SwitchView mDataSharingSwitch;
+
     @Override
     protected boolean showBottomFab() {
         return true;
@@ -51,8 +56,8 @@ public class DataSharingFragment extends RecyclerViewFragment {
 
     @Override
     protected Drawable getBottomFabDrawable() {
-        Drawable drawable = DrawableCompat.wrap(ContextCompat.getDrawable(
-                getActivity(), R.drawable.ic_search));
+        Drawable drawable = DrawableCompat.wrap(
+                ContextCompat.getDrawable(getActivity(), R.drawable.ic_search));
         DrawableCompat.setTint(drawable, Color.WHITE);
         return drawable;
     }
@@ -81,22 +86,19 @@ public class DataSharingFragment extends RecyclerViewFragment {
 
     @Override
     protected void addItems(List<RecyclerViewItem> items) {
-        SwitchView datasharing = new SwitchView();
-        datasharing.setSummary(getString(R.string.sharing_enable));
-        datasharing.setChecked(Prefs.getBoolean("data_sharing", true, getActivity()));
-        datasharing.addOnSwitchListener(new SwitchView.OnSwitchListener() {
-            @Override
-            public void onChanged(SwitchView switchView, boolean isChecked) {
-                if (isChecked) {
-                    Utils.startService(getActivity(), new Intent(getActivity(), Monitor.class));
-                } else {
-                    getActivity().stopService(new Intent(getActivity(), Monitor.class));
-                }
-                Prefs.saveBoolean("data_sharing", isChecked, getActivity());
+        mDataSharingSwitch = new SwitchView();
+        mDataSharingSwitch.setSummary(getString(R.string.sharing_enable));
+        mDataSharingSwitch.setChecked(AppSettings.isDataSharing(getActivity()));
+        mDataSharingSwitch.addOnSwitchListener((switchView, isChecked) -> {
+            if (isChecked) {
+                Utils.startService(getActivity(), new Intent(getActivity(), Monitor.class));
+            } else {
+                getActivity().stopService(new Intent(getActivity(), Monitor.class));
             }
+            AppSettings.saveDataSharing(isChecked, getActivity());
         });
 
-        items.add(datasharing);
+        items.add(mDataSharingSwitch);
     }
 
     @Override
@@ -104,4 +106,24 @@ public class DataSharingFragment extends RecyclerViewFragment {
         return true;
     }
 
+    private BroadcastReceiver mDisableReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (mDataSharingSwitch != null) {
+                mDataSharingSwitch.setChecked(false);
+            }
+        }
+    };
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getActivity().registerReceiver(mDisableReceiver, new IntentFilter(Monitor.ACTION_DISABLE));
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        getActivity().unregisterReceiver(mDisableReceiver);
+    }
 }

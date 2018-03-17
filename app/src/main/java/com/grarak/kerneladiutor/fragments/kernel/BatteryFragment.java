@@ -28,7 +28,7 @@ import android.os.BatteryManager;
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.fragments.ApplyOnBootFragment;
 import com.grarak.kerneladiutor.fragments.DescriptionFragment;
-import com.grarak.kerneladiutor.fragments.RecyclerViewFragment;
+import com.grarak.kerneladiutor.fragments.recyclerview.RecyclerViewFragment;
 import com.grarak.kerneladiutor.utils.kernel.battery.Battery;
 import com.grarak.kerneladiutor.views.recyclerview.CardView;
 import com.grarak.kerneladiutor.views.recyclerview.RecyclerViewItem;
@@ -102,12 +102,8 @@ public class BatteryFragment extends RecyclerViewFragment {
         forceFastCharge.setTitle(getString(R.string.usb_fast_charge));
         forceFastCharge.setSummary(getString(R.string.usb_fast_charge_summary));
         forceFastCharge.setChecked(mBattery.isForceFastChargeEnabled());
-        forceFastCharge.addOnSwitchListener(new SwitchView.OnSwitchListener() {
-            @Override
-            public void onChanged(SwitchView switchView, boolean isChecked) {
-                mBattery.enableForceFastCharge(isChecked, getActivity());
-            }
-        });
+        forceFastCharge.addOnSwitchListener((switchView, isChecked)
+                -> mBattery.enableForceFastCharge(isChecked, getActivity()));
 
         items.add(forceFastCharge);
     }
@@ -139,19 +135,15 @@ public class BatteryFragment extends RecyclerViewFragment {
     }
 
     private void chargeRateInit(List<RecyclerViewItem> items) {
-        CardView chargeRateCard = new CardView(getActivity());
+        CardView chargeRateCard = new CardView();
         chargeRateCard.setTitle(getString(R.string.charge_rate));
 
         if (mBattery.hasChargeRateEnable()) {
             SwitchView chargeRate = new SwitchView();
             chargeRate.setSummary(getString(R.string.charge_rate));
             chargeRate.setChecked(mBattery.isChargeRateEnabled());
-            chargeRate.addOnSwitchListener(new SwitchView.OnSwitchListener() {
-                @Override
-                public void onChanged(SwitchView switchView, boolean isChecked) {
-                    mBattery.enableChargeRate(isChecked, getActivity());
-                }
-            });
+            chargeRate.addOnSwitchListener((switchView, isChecked)
+                    -> mBattery.enableChargeRate(isChecked, getActivity()));
 
             chargeRateCard.addItem(chargeRate);
         }

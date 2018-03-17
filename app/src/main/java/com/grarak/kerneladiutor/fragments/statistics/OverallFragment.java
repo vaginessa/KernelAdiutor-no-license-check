@@ -41,7 +41,7 @@ import com.bvalosek.cpuspy.CpuSpyApp;
 import com.bvalosek.cpuspy.CpuStateMonitor;
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.fragments.BaseFragment;
-import com.grarak.kerneladiutor.fragments.RecyclerViewFragment;
+import com.grarak.kerneladiutor.fragments.recyclerview.RecyclerViewFragment;
 import com.grarak.kerneladiutor.utils.Utils;
 import com.grarak.kerneladiutor.utils.kernel.cpu.CPUFreq;
 import com.grarak.kerneladiutor.utils.kernel.gpu.GPUFreq;
@@ -87,6 +87,7 @@ public class OverallFragment extends RecyclerViewFragment {
         mGPUFreq = GPUFreq.getInstance();
 
         addViewPagerFragment(new CPUUsageFragment());
+        setViewPagerBackgroundColor(0);
     }
 
     @Override
@@ -110,64 +111,53 @@ public class OverallFragment extends RecyclerViewFragment {
 
     private void frequenciesInit(List<RecyclerViewItem> items) {
         FrequencyButtonView frequencyButtonView = new FrequencyButtonView();
-        frequencyButtonView.setRefreshListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                updateFrequency();
+        frequencyButtonView.setRefreshListener(v -> updateFrequency());
+        frequencyButtonView.setResetListener(v -> {
+            CpuStateMonitor cpuStateMonitor = mCpuSpyBig.getCpuStateMonitor();
+            CpuStateMonitor cpuStateMonitorLITTLE = null;
+            if (mCpuSpyLITTLE != null) {
+                cpuStateMonitorLITTLE = mCpuSpyLITTLE.getCpuStateMonitor();
             }
-        });
-        frequencyButtonView.setResetListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                CpuStateMonitor cpuStateMonitor = mCpuSpyBig.getCpuStateMonitor();
-                CpuStateMonitor cpuStateMonitorLITTLE = null;
-                if (mCpuSpyLITTLE != null) {
-                    cpuStateMonitorLITTLE = mCpuSpyLITTLE.getCpuStateMonitor();
-                }
-                try {
-                    cpuStateMonitor.setOffsets();
-                    if (cpuStateMonitorLITTLE != null) {
-                        cpuStateMonitorLITTLE.setOffsets();
-                    }
-                } catch (CpuStateMonitor.CpuStateMonitorException ignored) {
-                }
-                mCpuSpyBig.saveOffsets(getActivity());
-                if (mCpuSpyLITTLE != null) {
-                    mCpuSpyLITTLE.saveOffsets(getActivity());
-                }
-                updateView(cpuStateMonitor, mFreqBig);
+            try {
+                cpuStateMonitor.setOffsets();
                 if (cpuStateMonitorLITTLE != null) {
-                    updateView(cpuStateMonitorLITTLE, mFreqLITTLE);
+                    cpuStateMonitorLITTLE.setOffsets();
                 }
-                adjustScrollPosition();
+            } catch (CpuStateMonitor.CpuStateMonitorException ignored) {
             }
+            mCpuSpyBig.saveOffsets();
+            if (mCpuSpyLITTLE != null) {
+                mCpuSpyLITTLE.saveOffsets();
+            }
+            updateView(cpuStateMonitor, mFreqBig);
+            if (cpuStateMonitorLITTLE != null) {
+                updateView(cpuStateMonitorLITTLE, mFreqLITTLE);
+            }
+            adjustScrollPosition();
         });
-        frequencyButtonView.setRestoreListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                CpuStateMonitor cpuStateMonitor = mCpuSpyBig.getCpuStateMonitor();
-                CpuStateMonitor cpuStateMonitorLITTLE = null;
-                if (mCpuSpyLITTLE != null) {
-                    cpuStateMonitorLITTLE = mCpuSpyLITTLE.getCpuStateMonitor();
-                }
-                cpuStateMonitor.removeOffsets();
-                if (cpuStateMonitorLITTLE != null) {
-                    cpuStateMonitorLITTLE.removeOffsets();
-                }
-                mCpuSpyBig.saveOffsets(getActivity());
-                if (mCpuSpyLITTLE != null) {
-                    mCpuSpyLITTLE.saveOffsets(getActivity());
-                }
-                updateView(cpuStateMonitor, mFreqBig);
-                if (mCpuSpyLITTLE != null) {
-                    updateView(cpuStateMonitorLITTLE, mFreqLITTLE);
-                }
-                adjustScrollPosition();
+        frequencyButtonView.setRestoreListener(v -> {
+            CpuStateMonitor cpuStateMonitor = mCpuSpyBig.getCpuStateMonitor();
+            CpuStateMonitor cpuStateMonitorLITTLE = null;
+            if (mCpuSpyLITTLE != null) {
+                cpuStateMonitorLITTLE = mCpuSpyLITTLE.getCpuStateMonitor();
             }
+            cpuStateMonitor.removeOffsets();
+            if (cpuStateMonitorLITTLE != null) {
+                cpuStateMonitorLITTLE.removeOffsets();
+            }
+            mCpuSpyBig.saveOffsets();
+            if (mCpuSpyLITTLE != null) {
+                mCpuSpyLITTLE.saveOffsets();
+            }
+            updateView(cpuStateMonitor, mFreqBig);
+            if (mCpuSpyLITTLE != null) {
+                updateView(cpuStateMonitorLITTLE, mFreqLITTLE);
+            }
+            adjustScrollPosition();
         });
         items.add(frequencyButtonView);
 
-        mFreqBig = new CardView(getActivity());
+        mFreqBig = new CardView();
         if (mCPUFreq.isBigLITTLE()) {
             mFreqBig.setTitle(getString(R.string.cluster_big));
         } else {
@@ -176,7 +166,7 @@ public class OverallFragment extends RecyclerViewFragment {
         items.add(mFreqBig);
 
         if (mCPUFreq.isBigLITTLE()) {
-            mFreqLITTLE = new CardView(getActivity());
+            mFreqLITTLE = new CardView();
             mFreqLITTLE.setTitle(getString(R.string.cluster_little));
             items.add(mFreqLITTLE);
         }
@@ -442,28 +432,25 @@ public class OverallFragment extends RecyclerViewFragment {
 
         public void refresh() {
             if (mThread == null) {
-                mThread = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        while (true) {
-                            if (mThread == null) break;
-                            try {
-                                CPUFreq cpuFreq = CPUFreq.getInstance(getActivity());
-                                mCPUUsages = cpuFreq.getCpuUsage();
-                                if (mFreqs == null) {
-                                    mFreqs = new int[cpuFreq.getCpuCount()];
-                                }
-                                for (int i = 0; i < mFreqs.length; i++) {
-                                    if (getActivity() == null) break;
-                                    mFreqs[i] = cpuFreq.getCurFreq(i);
-                                }
+                mThread = new Thread(() -> {
+                    while (true) {
+                        if (mThread == null) break;
+                        try {
+                            CPUFreq cpuFreq = CPUFreq.getInstance(getActivity());
+                            mCPUUsages = cpuFreq.getCpuUsage();
+                            if (mFreqs == null) {
+                                mFreqs = new int[cpuFreq.getCpuCount()];
+                            }
+                            for (int i = 0; i < mFreqs.length; i++) {
+                                if (getActivity() == null) break;
+                                mFreqs[i] = cpuFreq.getCurFreq(i);
+                            }
 
-                                if (getActivity() == null) {
-                                    mThread = null;
-                                }
-                            } catch (InterruptedException ignored) {
+                            if (getActivity() == null) {
                                 mThread = null;
                             }
+                        } catch (InterruptedException ignored) {
+                            mThread = null;
                         }
                     }
                 });

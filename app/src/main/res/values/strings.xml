@@ -851,6 +851,7 @@
     <string name="hide_banner">Hide banner</string>
     <string name="force_cards">Force cards</string>
     <string name="force_cards_summary">Use cards for items if possible.</string>
+    <string name="primary_color">Primary color</string>
     <string name="accent_color">Accent Color</string>
     <string name="section_icons">Section Icons</string>
     <string name="section_icons_summary">Show icons for each section in navigation drawer.</string>
@@ -894,7 +895,8 @@
 
     <!-- About -->
     <string name="about_me">Hi, I\'m Willi Ye aka Grarak, a 19 year old student living in Vienna. I\'ve been developing on Android for quite a long time. Beside Kernel Adiutor I\'m also maintaining LineageOS for few devices and working on ParanoidAndroid. So please understand if I don\'t find the time to update this application.</string>
-    <string name="libraries_used">Libraries used</string>
+    <string name="software_licenses">Software Licenses</string>
+    <string name="software_licenses_summary">View licenses</string>
 
     <!-- Contributors -->
     <string name="commits">%d commits</string>

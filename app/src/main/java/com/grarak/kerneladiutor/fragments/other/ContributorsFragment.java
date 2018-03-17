@@ -22,7 +22,7 @@ package com.grarak.kerneladiutor.fragments.other;
 import android.support.design.widget.Snackbar;
 
 import com.grarak.kerneladiutor.R;
-import com.grarak.kerneladiutor.fragments.RecyclerViewFragment;
+import com.grarak.kerneladiutor.fragments.recyclerview.RecyclerViewFragment;
 import com.grarak.kerneladiutor.utils.WebpageReader;
 import com.grarak.kerneladiutor.utils.other.Contributors;
 import com.grarak.kerneladiutor.views.recyclerview.ContributorView;
@@ -64,8 +64,8 @@ public class ContributorsFragment extends RecyclerViewFragment {
     protected void postInit() {
         super.postInit();
 
-        showProgress();
         if (mWebpageReader == null) {
+            showProgress();
             mWebpageReader = new WebpageReader(getActivity(), new WebpageReader.WebpageListener() {
                 @Override
                 public void onSuccess(String url, String raw, CharSequence html) {
@@ -94,9 +94,11 @@ public class ContributorsFragment extends RecyclerViewFragment {
     }
 
     private void error() {
-        hideProgress();
-        mErrorBar = Snackbar.make(getRootView(), R.string.no_internet, Snackbar.LENGTH_INDEFINITE);
-        mErrorBar.show();
+        if (isAdded()) {
+            hideProgress();
+            mErrorBar = Snackbar.make(getRootView(), R.string.no_internet, Snackbar.LENGTH_INDEFINITE);
+            mErrorBar.show();
+        }
     }
 
     @Override

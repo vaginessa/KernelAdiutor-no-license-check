@@ -21,7 +21,7 @@ package com.grarak.kerneladiutor.fragments.kernel;
 
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.fragments.ApplyOnBootFragment;
-import com.grarak.kerneladiutor.fragments.RecyclerViewFragment;
+import com.grarak.kerneladiutor.fragments.recyclerview.RecyclerViewFragment;
 import com.grarak.kerneladiutor.utils.Utils;
 import com.grarak.kerneladiutor.utils.kernel.cpu.CPUFreq;
 import com.grarak.kerneladiutor.utils.kernel.cpuhotplug.AiOHotplug;
@@ -68,7 +68,7 @@ public class CPUHotplugFragment extends RecyclerViewFragment {
         mCPUFreq = CPUFreq.getInstance(getActivity());
         mIntelliPlug = IntelliPlug.getInstance();
         mMSMHotplug = MSMHotplug.getInstance();
-        mMBHotplug = mMBHotplug.getInstance();
+        mMBHotplug = MBHotplug.getInstance();
         mCoreCtl = CoreCtl.getInstance();
         addViewPagerFragment(ApplyOnBootFragment.newInstance(this));
     }

@@ -19,7 +19,6 @@
  */
 package com.grarak.kerneladiutor.activities;
 
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ShortcutInfo;
 import android.content.pm.ShortcutManager;
@@ -28,9 +27,9 @@ import android.graphics.drawable.Icon;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.Fragment;
@@ -44,11 +43,9 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
-import android.view.View;
 
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.fragments.BaseFragment;
-import com.grarak.kerneladiutor.fragments.RecyclerViewFragment;
 import com.grarak.kerneladiutor.fragments.kernel.BatteryFragment;
 import com.grarak.kerneladiutor.fragments.kernel.CPUFragment;
 import com.grarak.kerneladiutor.fragments.kernel.CPUHotplugFragment;
@@ -69,6 +66,7 @@ import com.grarak.kerneladiutor.fragments.other.AboutFragment;
 import com.grarak.kerneladiutor.fragments.other.ContributorsFragment;
 import com.grarak.kerneladiutor.fragments.other.HelpFragment;
 import com.grarak.kerneladiutor.fragments.other.SettingsFragment;
+import com.grarak.kerneladiutor.fragments.recyclerview.RecyclerViewFragment;
 import com.grarak.kerneladiutor.fragments.statistics.DeviceFragment;
 import com.grarak.kerneladiutor.fragments.statistics.InputsFragment;
 import com.grarak.kerneladiutor.fragments.statistics.MemoryFragment;
@@ -83,8 +81,8 @@ import com.grarak.kerneladiutor.fragments.tools.RecoveryFragment;
 import com.grarak.kerneladiutor.fragments.tools.customcontrols.CustomControlsFragment;
 import com.grarak.kerneladiutor.fragments.tools.downloads.DownloadsFragment;
 import com.grarak.kerneladiutor.services.monitor.Monitor;
+import com.grarak.kerneladiutor.utils.AppSettings;
 import com.grarak.kerneladiutor.utils.Device;
-import com.grarak.kerneladiutor.utils.Prefs;
 import com.grarak.kerneladiutor.utils.Utils;
 import com.grarak.kerneladiutor.utils.ViewUtils;
 import com.grarak.kerneladiutor.utils.WebpageReader;
@@ -104,11 +102,10 @@ import com.grarak.kerneladiutor.utils.kernel.wake.Wake;
 import com.grarak.kerneladiutor.utils.root.RootUtils;
 import com.grarak.kerneladiutor.utils.tools.Backup;
 import com.grarak.kerneladiutor.utils.tools.SupportedDownloads;
-import com.grarak.kerneladiutor.views.AdNativeExpress;
+import com.grarak.kerneladiutor.views.AdLayout;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,13 +114,15 @@ import java.util.PriorityQueue;
 public class NavigationActivity extends BaseActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    private static final String PACKAGE = NavigationActivity.class.getCanonicalName();
+    public static final String INTENT_SECTION = PACKAGE + ".INTENT.SECTION";
+
     private ArrayList<NavigationFragment> mFragments = new ArrayList<>();
     private Map<Integer, Class<? extends Fragment>> mActualFragments = new LinkedHashMap<>();
 
-    private Handler mHandler = new Handler();
     private DrawerLayout mDrawer;
     private NavigationView mNavigationView;
-    private boolean mExit;
+    private long mLastTimeBackbuttonPressed;
 
     private int mSelection;
     private boolean mLicenseDialog = true;
@@ -181,7 +180,9 @@ public class NavigationActivity extends BaseActivity
         if (Device.MemInfo.getInstance().getItems().size() > 0) {
             mFragments.add(new NavigationActivity.NavigationFragment(R.string.memory, MemoryFragment.class, R.drawable.ic_save));
         }
-        mFragments.add(new NavigationActivity.NavigationFragment(R.string.inputs, InputsFragment.class, R.drawable.ic_keyboard));
+        if (Device.Input.getInstance().supported()) {
+            mFragments.add(new NavigationActivity.NavigationFragment(R.string.inputs, InputsFragment.class, R.drawable.ic_keyboard));
+        }
         mFragments.add(new NavigationActivity.NavigationFragment(R.string.kernel));
         mFragments.add(new NavigationActivity.NavigationFragment(R.string.cpu, CPUFragment.class, R.drawable.ic_cpu));
         if (Voltage.getInstance().supported()) {
@@ -252,28 +253,19 @@ public class NavigationActivity extends BaseActivity
         int result = getIntent().getIntExtra("result", -1);
 
         if ((result == 1 || result == 2) && mLicenseDialog) {
-            ViewUtils.dialogBuilder(getString(R.string.license_invalid), null,
-                    new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                        }
-                    }, new DialogInterface.OnDismissListener() {
-                        @Override
-                        public void onDismiss(DialogInterface dialog) {
-                            mLicenseDialog = false;
-                        }
-                    }, this).show();
+            ViewUtils.dialogBuilder(getString(R.string.license_invalid),
+                    null,
+                    (dialog, which) -> {
+                    },
+                    dialog -> mLicenseDialog = false, this)
+                    .show();
         } else if (result == 3 && mLicenseDialog) {
-            ViewUtils.dialogBuilder(getString(R.string.pirated), null, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                }
-            }, new DialogInterface.OnDismissListener() {
-                @Override
-                public void onDismiss(DialogInterface dialog) {
-                    mLicenseDialog = false;
-                }
-            }, this).show();
+            ViewUtils.dialogBuilder(getString(R.string.pirated),
+                    null,
+                    (dialog, which) -> {
+                    },
+                    dialog -> mLicenseDialog = false, this)
+                    .show();
         } else {
             mLicenseDialog = false;
             if (result == 0) {
@@ -285,30 +277,27 @@ public class NavigationActivity extends BaseActivity
         Toolbar toolbar = getToolBar();
         setSupportActionBar(toolbar);
 
-        mDrawer = (DrawerLayout) findViewById(R.id.drawer_layout);
+        mDrawer = findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, mDrawer, toolbar, 0, 0);
         mDrawer.addDrawerListener(toggle);
         toggle.syncState();
 
-        mNavigationView = (NavigationView) findViewById(R.id.nav_view);
+        mNavigationView = findViewById(R.id.nav_view);
         mNavigationView.setNavigationItemSelectedListener(this);
-        mNavigationView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (hasFocus) {
-                    v.clearFocus();
-                }
+        mNavigationView.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                v.clearFocus();
             }
         });
 
         if (savedInstanceState != null) {
-            mSelection = savedInstanceState.getInt("selection");
+            mSelection = savedInstanceState.getInt(INTENT_SECTION);
             mLicenseDialog = savedInstanceState.getBoolean("license");
             mFetchingAds = savedInstanceState.getBoolean("fetching_ads");
         }
 
         appendFragments(false);
-        String section = getIntent().getStringExtra("section");
+        String section = getIntent().getStringExtra(INTENT_SECTION);
         if (section != null) {
             for (Map.Entry<Integer, Class<? extends Fragment>> entry : mActualFragments.entrySet()) {
                 Class<? extends Fragment> fragmentClass = entry.getValue();
@@ -317,15 +306,15 @@ public class NavigationActivity extends BaseActivity
                     break;
                 }
             }
-            getIntent().removeExtra("section");
+            getIntent().removeExtra(INTENT_SECTION);
         }
 
         if (mSelection == 0 || mActualFragments.get(mSelection) == null) {
             mSelection = firstTab();
         }
-        onItemSelected(mSelection, false, false);
+        onItemSelected(mSelection, false);
 
-        if (Prefs.getBoolean("data_sharing", true, this)) {
+        if (AppSettings.isDataSharing(this)) {
             startService(new Intent(this, Monitor.class));
         }
 
@@ -334,7 +323,7 @@ public class NavigationActivity extends BaseActivity
             mAdsFetcher = new WebpageReader(this, new WebpageReader.WebpageListener() {
                 @Override
                 public void onSuccess(String url, String raw, CharSequence html) {
-                    AdNativeExpress.GHAds ghAds = new AdNativeExpress.GHAds(raw);
+                    AdLayout.GHAds ghAds = new AdLayout.GHAds(raw);
                     if (ghAds.readable()) {
                         ghAds.cache(NavigationActivity.this);
                         Fragment fragment = getFragment(mSelection);
@@ -348,7 +337,7 @@ public class NavigationActivity extends BaseActivity
                 public void onFailure(String url) {
                 }
             });
-            mAdsFetcher.get(AdNativeExpress.ADS_FETCH);
+            mAdsFetcher.get(AdLayout.ADS_FETCH);
         }
     }
 
@@ -377,15 +366,14 @@ public class NavigationActivity extends BaseActivity
 
             Drawable drawable = ContextCompat.getDrawable(this,
                     Utils.DONATED
-                            && Prefs.getBoolean("section_icons", false, this)
+                            && AppSettings.isSectionIcons(this)
                             && navigationFragment.mDrawable != 0 ? navigationFragment.mDrawable :
                             R.drawable.ic_blank);
 
             if (fragmentClass == null) {
                 lastSubMenu = menu.addSubMenu(id);
                 mActualFragments.put(id, null);
-            } else if (Prefs.getBoolean(fragmentClass.getSimpleName() + "_enabled",
-                    true, this)) {
+            } else if (AppSettings.isFragmentEnabled(fragmentClass, this)) {
                 MenuItem menuItem = lastSubMenu == null ? menu.add(0, id, 0, id) :
                         lastSubMenu.add(0, id, 0, id);
                 menuItem.setIcon(drawable);
@@ -415,15 +403,10 @@ public class NavigationActivity extends BaseActivity
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N_MR1) return;
 
         PriorityQueue<Class<? extends Fragment>> queue = new PriorityQueue<>(
-                new Comparator<Class<? extends Fragment>>() {
-                    @Override
-                    public int compare(Class<? extends Fragment> o1, Class<? extends Fragment> o2) {
-                        int opened1 = Prefs.getInt(o1.getSimpleName() + "_opened",
-                                0, NavigationActivity.this);
-                        int opened2 = Prefs.getInt(o2.getSimpleName() + "_opened",
-                                0, NavigationActivity.this);
-                        return opened2 - opened1;
-                    }
+                (o1, o2) -> {
+                    int opened1 = AppSettings.getFragmentOpened(o1, this);
+                    int opened2 = AppSettings.getFragmentOpened(o2, this);
+                    return opened2 - opened1;
                 });
 
         for (Map.Entry<Integer, Class<? extends Fragment>> entry : mActualFragments.entrySet()) {
@@ -441,7 +424,7 @@ public class NavigationActivity extends BaseActivity
             if (fragment == null || fragment.mFragmentClass == null) continue;
             Intent intent = new Intent(this, MainActivity.class);
             intent.setAction(Intent.ACTION_VIEW);
-            intent.putExtra("section", fragment.mFragmentClass.getCanonicalName());
+            intent.putExtra(INTENT_SECTION, fragment.mFragmentClass.getCanonicalName());
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
             ShortcutInfo shortcut = new ShortcutInfo.Builder(this,
@@ -473,18 +456,12 @@ public class NavigationActivity extends BaseActivity
             Fragment currentFragment = getFragment(mSelection);
             if (!(currentFragment instanceof BaseFragment)
                     || !((BaseFragment) currentFragment).onBackPressed()) {
-                if (mExit) {
-                    mExit = false;
-                    super.onBackPressed();
-                } else {
+                long currentTime = SystemClock.elapsedRealtime();
+                if (currentTime - mLastTimeBackbuttonPressed > 2000) {
+                    mLastTimeBackbuttonPressed = currentTime;
                     Utils.toast(R.string.press_back_again_exit, this);
-                    mExit = true;
-                    mHandler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            mExit = false;
-                        }
-                    }, 2000);
+                } else {
+                    super.onBackPressed();
                 }
             }
         }
@@ -513,18 +490,18 @@ public class NavigationActivity extends BaseActivity
         super.onSaveInstanceState(outState);
 
         outState.putParcelableArrayList("fragments", mFragments);
-        outState.putInt("selection", mSelection);
+        outState.putInt(INTENT_SECTION, mSelection);
         outState.putBoolean("license", mLicenseDialog);
         outState.putBoolean("fetching_ads", mFetchingAds);
     }
 
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        onItemSelected(item.getItemId(), true, true);
+        onItemSelected(item.getItemId(), true);
         return true;
     }
 
-    private void onItemSelected(final int res, final boolean delay, boolean saveOpened) {
+    private void onItemSelected(final int res, boolean saveOpened) {
         mDrawer.closeDrawer(GravityCompat.START);
         getSupportActionBar().setTitle(getString(res));
         mNavigationView.setCheckedItem(res);
@@ -532,20 +509,24 @@ public class NavigationActivity extends BaseActivity
         final Fragment fragment = getFragment(res);
 
         if (saveOpened) {
-            String openedName = fragment.getClass().getSimpleName() + "_opened";
-            Prefs.saveInt(openedName, Prefs.getInt(openedName, 0, this) + 1, this);
+            AppSettings.saveFragmentOpened(fragment.getClass(),
+                    AppSettings.getFragmentOpened(fragment.getClass(), this) + 1,
+                    this);
         }
         setShortcuts();
 
-        getSupportFragmentManager().beginTransaction().replace(R.id.content_frame, fragment,
-                res + "_key").commitAllowingStateLoss();
+        mDrawer.postDelayed(()
+                        -> getSupportFragmentManager().beginTransaction().replace(
+                R.id.content_frame, fragment, res + "_key").commitAllowingStateLoss(),
+                250);
     }
 
     private Fragment getFragment(int res) {
         FragmentManager fragmentManager = getSupportFragmentManager();
         Fragment fragment = fragmentManager.findFragmentByTag(res + "_key");
-        if (fragment == null) {
-            fragment = Fragment.instantiate(this, mActualFragments.get(res).getCanonicalName());
+        if (fragment == null && mActualFragments.containsKey(res)) {
+            fragment = Fragment.instantiate(this,
+                    mActualFragments.get(res).getCanonicalName());
         }
         return fragment;
     }

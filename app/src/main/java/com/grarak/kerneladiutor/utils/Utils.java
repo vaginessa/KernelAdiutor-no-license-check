@@ -91,8 +91,8 @@ public class Utils {
         for (int i = 0; i < chars.length; i++) {
             if (i == 0) {
                 chars[i] = Character.toUpperCase(chars[0]);
-            } else if (Character.isWhitespace(chars[i])) {
-                chars[i] = Character.toUpperCase(chars[i]);
+            } else if (Character.isWhitespace(chars[i]) && i != chars.length - 1) {
+                chars[i + 1] = Character.toUpperCase(chars[i + 1]);
             }
         }
 
@@ -233,17 +233,6 @@ public class Utils {
     public static String getExternalStorage() {
         String path = RootUtils.runCommand("echo ${SECONDARY_STORAGE%%:*}");
         return path.contains("/") ? path : null;
-    }
-
-    public static String getInternalStorage() {
-        String dataPath = existFile("/data/media/0", true) ? "/data/media/0" : "/data/media";
-        if (!new RootFile(dataPath).isEmpty()) {
-            return dataPath;
-        }
-        if (existFile("/sdcard", true)) {
-            return "/sdcard";
-        }
-        return Environment.getExternalStorageDirectory().getPath();
     }
 
     public static String getInternalDataStorage() {

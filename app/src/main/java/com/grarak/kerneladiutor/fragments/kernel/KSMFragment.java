@@ -21,7 +21,7 @@ package com.grarak.kerneladiutor.fragments.kernel;
 
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.fragments.ApplyOnBootFragment;
-import com.grarak.kerneladiutor.fragments.RecyclerViewFragment;
+import com.grarak.kerneladiutor.fragments.recyclerview.RecyclerViewFragment;
 import com.grarak.kerneladiutor.utils.kernel.ksm.KSM;
 import com.grarak.kerneladiutor.views.recyclerview.DescriptionView;
 import com.grarak.kerneladiutor.views.recyclerview.RecyclerViewItem;
@@ -57,12 +57,8 @@ public class KSMFragment extends RecyclerViewFragment {
             enable.setTitle(getString(R.string.ksm));
             enable.setSummary(getString(R.string.ksm_summary));
             enable.setChecked(mKSM.isEnabled());
-            enable.addOnSwitchListener(new SwitchView.OnSwitchListener() {
-                @Override
-                public void onChanged(SwitchView switchView, boolean isChecked) {
-                    mKSM.enableKsm(isChecked, getActivity());
-                }
-            });
+            enable.addOnSwitchListener((switchView, isChecked)
+                    -> mKSM.enableKsm(isChecked, getActivity()));
 
             items.add(enable);
         }
@@ -72,12 +68,8 @@ public class KSMFragment extends RecyclerViewFragment {
             deferredTimer.setTitle(getString(R.string.deferred_timer));
             deferredTimer.setSummary(getString(R.string.deferred_timer_summary));
             deferredTimer.setChecked(mKSM.isDeferredTimerEnabled());
-            deferredTimer.addOnSwitchListener(new SwitchView.OnSwitchListener() {
-                @Override
-                public void onChanged(SwitchView switchView, boolean isChecked) {
-                    mKSM.enableDeferredTimer(isChecked, getActivity());
-                }
-            });
+            deferredTimer.addOnSwitchListener((switchView, isChecked)
+                    -> mKSM.enableDeferredTimer(isChecked, getActivity()));
 
             items.add(deferredTimer);
         }
