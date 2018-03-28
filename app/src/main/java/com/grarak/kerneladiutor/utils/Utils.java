@@ -41,7 +41,6 @@ import android.support.annotation.StringRes;
 import android.support.v4.view.ViewCompat;
 import android.text.Html;
 import android.util.Base64;
-import android.util.Log;
 import android.view.Display;
 import android.view.View;
 import android.widget.Toast;
@@ -67,6 +66,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import java.util.Random;
 
 /**
@@ -296,7 +296,7 @@ public class Utils {
         try {
             digest = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            Log.e(TAG, "Exception while getting digest", e);
+            Log.e(TAG, "Exception while getting digest " + e.getMessage());
             return null;
         }
 
@@ -304,7 +304,7 @@ public class Utils {
         try {
             is = new FileInputStream(updateFile);
         } catch (FileNotFoundException e) {
-            Log.e(TAG, "Exception while getting FileInputStream", e);
+            Log.e(TAG, "Exception while getting FileInputStream " + e.getMessage());
             return null;
         }
 
@@ -326,7 +326,7 @@ public class Utils {
             try {
                 is.close();
             } catch (IOException e) {
-                Log.e(TAG, "Exception on closing MD5 input stream", e);
+                Log.e(TAG, "Exception on closing MD5 input stream " + e.getMessage());
             }
         }
     }
@@ -377,7 +377,7 @@ public class Utils {
     }
 
     public static String strFormat(String text, Object... format) {
-        return String.format(text, format);
+        return String.format(Locale.getDefault(), text, format);
     }
 
     public static Float strToFloat(String text) {

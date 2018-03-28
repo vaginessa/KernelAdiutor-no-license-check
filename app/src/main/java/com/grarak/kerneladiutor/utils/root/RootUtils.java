@@ -19,8 +19,7 @@
  */
 package com.grarak.kerneladiutor.utils.root;
 
-import android.util.Log;
-
+import com.grarak.kerneladiutor.utils.Log;
 import com.grarak.kerneladiutor.utils.Utils;
 
 import java.io.BufferedReader;
@@ -220,7 +219,7 @@ public class RootUtils {
 
                     mProcess.destroy();
                     if (mTag != null) {
-                        Log.i(mTag, String.format("%s closed: %d",
+                        Log.i(mTag, Utils.strFormat("%s closed: %d",
                                 mRoot ? "SU" : "SH", mProcess.exitValue()));
                     }
                 }

@@ -80,11 +80,6 @@ public class CardView extends RecyclerViewItem {
     public void onRecyclerViewCreate(Activity activity) {
         super.onRecyclerViewCreate(activity);
 
-        mAsyncLayoutInflater = new AsyncLayoutInflater(activity);
-        while (mInflaterNotReadyQueue.size() != 0) {
-            addView(mInflaterNotReadyQueue.poll());
-        }
-
         for (RecyclerViewItem item : mViews.keySet()) {
             item.onRecyclerViewCreate(activity);
         }
@@ -103,7 +98,15 @@ public class CardView extends RecyclerViewItem {
     void onCreateHolder(ViewGroup parent, View view) {
         super.onCreateHolder(parent, view);
         initLayouts(view);
-        if (mLayout.getChildCount() == 0) {
+
+        if (mAsyncLayoutInflater == null) {
+            parent.getHandler().post(() -> {
+                mAsyncLayoutInflater = new AsyncLayoutInflater(parent.getContext());
+                while (mInflaterNotReadyQueue.size() != 0) {
+                    addView(mInflaterNotReadyQueue.poll());
+                }
+            });
+        } else if (mLayout.getChildCount() == 0) {
             setupLayout();
         }
     }
