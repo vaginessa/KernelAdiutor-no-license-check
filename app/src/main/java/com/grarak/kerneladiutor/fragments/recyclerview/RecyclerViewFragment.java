@@ -63,7 +63,6 @@ import com.grarak.kerneladiutor.utils.AppSettings;
 import com.grarak.kerneladiutor.utils.Utils;
 import com.grarak.kerneladiutor.utils.ViewUtils;
 import com.grarak.kerneladiutor.views.dialog.ViewPagerDialog;
-import com.grarak.kerneladiutor.views.recyclerview.AdView;
 import com.grarak.kerneladiutor.views.recyclerview.RecyclerViewAdapter;
 import com.grarak.kerneladiutor.views.recyclerview.RecyclerViewItem;
 import com.viewpagerindicator.CirclePageIndicator;
@@ -92,8 +91,6 @@ public abstract class RecyclerViewFragment extends BaseFragment {
     private RecyclerView.LayoutManager mLayoutManager;
     private RecyclerViewAdapter mRecyclerViewAdapter;
     private Scroller mScroller;
-
-    private AdView mAdView;
 
     private View mProgress;
 
@@ -161,8 +158,8 @@ public abstract class RecyclerViewFragment extends BaseFragment {
 
         mProgress = mRootView.findViewById(R.id.progress);
 
-        mAppBarLayout = ((BaseActivity) getActivity()).getAppBarLayout();
-        mToolBar = ((BaseActivity) getActivity()).getToolBar();
+        mAppBarLayout = ((BaseActivity) requireActivity()).getAppBarLayout();
+        mToolBar = ((BaseActivity) requireActivity()).getToolBar();
 
         if (mAppBarLayout != null && !isForeground()) {
             mAppBarLayout.postDelayed(() -> {
@@ -192,29 +189,18 @@ public abstract class RecyclerViewFragment extends BaseFragment {
         mRecyclerView.setLayoutManager(mLayoutManager = getLayoutManager());
         mRecyclerView.setHasFixedSize(true);
 
-        if (!Utils.DONATED
-                && !showTopFab()
-                && !isForeground()
-                && getActivity() instanceof NavigationActivity
-                && showAd()
-                && mAdView == null) {
-            mAdView = new AdView();
-        } else {
-            mAdView = null;
-        }
-
         mTopFab.setOnClickListener(v -> onTopFabClick());
         {
-            Drawable drawable;
-            if ((drawable = getTopFabDrawable()) != null) {
+            Drawable drawable = getTopFabDrawable();
+            if (drawable != null) {
                 mTopFab.setImageDrawable(drawable);
             }
         }
 
         mBottomFab.setOnClickListener(v -> onBottomFabClick());
         {
-            Drawable drawable;
-            if ((drawable = getBottomFabDrawable()) != null) {
+            Drawable drawable = getBottomFabDrawable();
+            if (drawable != null) {
                 mBottomFab.setImageDrawable(drawable);
             }
         }
@@ -447,18 +433,6 @@ public abstract class RecyclerViewFragment extends BaseFragment {
     }
 
     protected void addItem(RecyclerViewItem recyclerViewItem) {
-        if (mItems.size() == 0 && mAdView != null && !mItems.contains(mAdView)) {
-            boolean exists = false;
-            for (RecyclerViewItem item : mItems) {
-                if (item instanceof AdView) {
-                    exists = true;
-                    break;
-                }
-            }
-            if (!exists) {
-                mItems.add(mAdView);
-            }
-        }
         mItems.add(recyclerViewItem);
         if (mRecyclerViewAdapter != null) {
             mRecyclerViewAdapter.notifyItemInserted(mItems.size() - 1);
@@ -473,9 +447,9 @@ public abstract class RecyclerViewFragment extends BaseFragment {
     }
 
     public void resizeBanner() {
-        if (showViewPager() && !hideBanner() && Utils.DONATED) {
+        if (showViewPager() && !hideBanner() && Utils.isDonated(requireActivity())) {
             ViewGroup.LayoutParams layoutParams = mViewPagerParent.getLayoutParams();
-            layoutParams.height = AppSettings.getBannerSize(getActivity());
+            layoutParams.height = AppSettings.getBannerSize(requireActivity());
             mRecyclerView.setPadding(mRecyclerView.getPaddingLeft(), layoutParams.height,
                     mRecyclerView.getPaddingRight(), mRecyclerView.getPaddingBottom());
             mViewPagerParent.requestLayout();
@@ -518,7 +492,7 @@ public abstract class RecyclerViewFragment extends BaseFragment {
     }
 
     public int itemsSize() {
-        return mAdView != null && mItems.contains(mAdView) ? mItems.size() - 1 : mItems.size();
+        return mItems.size();
     }
 
     protected void addViewPagerFragment(BaseFragment fragment) {
@@ -716,6 +690,7 @@ public abstract class RecyclerViewFragment extends BaseFragment {
             public void onAnimationRepeat(Animation animation) {
             }
         });
+        mSlideInOutAnimation.setDuration(250);
         view.startAnimation(mSlideInOutAnimation);
     }
 
@@ -738,6 +713,7 @@ public abstract class RecyclerViewFragment extends BaseFragment {
             public void onAnimationRepeat(Animation animation) {
             }
         });
+        mSlideInOutAnimation.setDuration(250);
         view.startAnimation(mSlideInOutAnimation);
     }
 
@@ -760,7 +736,7 @@ public abstract class RecyclerViewFragment extends BaseFragment {
 
         if (showViewPager()) {
             menu.add(0, 0, Menu.NONE, R.string.options)
-                    .setIcon(ContextCompat.getDrawable(getActivity(), R.drawable.ic_launcher_preview))
+                    .setIcon(ContextCompat.getDrawable(requireActivity(), R.drawable.ic_launcher_preview))
                     .setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_IF_ROOM);
         }
         if (showTopFab()) {
@@ -779,7 +755,7 @@ public abstract class RecyclerViewFragment extends BaseFragment {
         switch (item.getItemId()) {
             case 0:
                 ViewUtils.showDialog(getChildFragmentManager(),
-                        ViewPagerDialog.newInstance(AppSettings.getBannerSize(getActivity()),
+                        ViewPagerDialog.newInstance(AppSettings.getBannerSize(requireActivity()),
                                 mViewPagerFragments));
                 return true;
             case 1:
@@ -975,16 +951,6 @@ public abstract class RecyclerViewFragment extends BaseFragment {
     protected void refresh() {
     }
 
-    protected boolean showAd() {
-        return false;
-    }
-
-    public void ghAdReady() {
-        if (mAdView != null) {
-            mAdView.ghReady();
-        }
-    }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -1007,7 +973,6 @@ public abstract class RecyclerViewFragment extends BaseFragment {
             mDialogLoader.cancel(true);
             mDialogLoader = null;
         }
-        mAdView = null;
         for (RecyclerViewItem item : mItems) {
             item.onDestroy();
         }

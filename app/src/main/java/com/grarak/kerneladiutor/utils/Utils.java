@@ -26,7 +26,6 @@ import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
@@ -74,9 +73,19 @@ import java.util.Random;
  */
 public class Utils {
 
-    private static final String TAG = Utils.class.getSimpleName();
-    public static boolean DONATED = BuildConfig.DEBUG;
-    public static boolean DARK_THEME;
+    private static final String DONATION_PACKAGE = "com.grarak.kerneladiutordonate";
+
+    public static boolean isDonated(Context context) {
+        if (BuildConfig.DEBUG) {
+            return true;
+        }
+        try {
+            context.getPackageManager().getApplicationInfo(DONATION_PACKAGE, 0);
+            return true;
+        } catch (PackageManager.NameNotFoundException ignored) {
+            return false;
+        }
+    }
 
     public static void startService(Context context, Intent intent) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -170,7 +179,7 @@ public class Utils {
     }
 
     public static boolean hideStartActivity() {
-        RootUtils.SU su = new RootUtils.SU(false, null);
+        RootUtils.SU su = new RootUtils.SU(false, false);
         String prop = su.runCommand("getprop ro.kerneladiutor.hide");
         su.close();
         return prop != null && prop.equals("true");
@@ -240,51 +249,17 @@ public class Utils {
                 BuildConfig.APPLICATION_ID;
     }
 
-    // Sorry pirates!
-    public static boolean isPatched(ApplicationInfo applicationInfo) {
-        try {
-            boolean withBase = new File(applicationInfo.publicSourceDir).getName().equals("base.apk");
-            if (withBase) {
-                RootFile parent = new RootFile(applicationInfo.publicSourceDir).getParentFile();
-                RootFile odex = new RootFile(parent.toString() + "/oat/*/base.odex");
-                if (odex.exists()) {
-                    String text = RootUtils.runCommand("strings " + odex.toString());
-                    if (text.contains("--dex-file") || text.contains("--oat-file")) {
-                        return true;
-                    }
-                }
-
-                String dex = "/data/dalvik-cache/*/data@app@" + applicationInfo.packageName + "*@classes.dex";
-                if (Utils.existFile(dex)) {
-                    String path = RootUtils.runCommand("realpath " + dex);
-                    if (path != null) {
-                        String text = RootUtils.runCommand("strings " + path);
-                        if (text.contains("--dex-file") || text.contains("--oat-file")) {
-                            return true;
-                        }
-                    }
-                }
-            } else if (Utils.existFile(applicationInfo.publicSourceDir.replace(".apk", ".odex"))) {
-                new RootFile(applicationInfo.publicSourceDir.replace(".apk", ".odex")).delete();
-                RootUtils.runCommand("pkill " + applicationInfo.packageName);
-                return false;
-            }
-        } catch (Exception ignored) {
-        }
-        return false;
-    }
-
     // MD5 code from
     // https://github.com/CyanogenMod/android_packages_apps_CMUpdater/blob/cm-12.1/src/com/cyanogenmod/updater/utils/MD5.java
     public static boolean checkMD5(String md5, File updateFile) {
         if (md5 == null || updateFile == null || md5.isEmpty()) {
-            Log.e(TAG, "MD5 string empty or updateFile null");
+            Log.e("MD5 string empty or updateFile null");
             return false;
         }
 
         String calculatedDigest = calculateMD5(updateFile);
         if (calculatedDigest == null) {
-            Log.e(TAG, "calculatedDigest null");
+            Log.e("calculatedDigest null");
             return false;
         }
 
@@ -296,7 +271,7 @@ public class Utils {
         try {
             digest = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
-            Log.e(TAG, "Exception while getting digest " + e.getMessage());
+            Log.e("Exception while getting digest " + e.getMessage());
             return null;
         }
 
@@ -304,7 +279,7 @@ public class Utils {
         try {
             is = new FileInputStream(updateFile);
         } catch (FileNotFoundException e) {
-            Log.e(TAG, "Exception while getting FileInputStream " + e.getMessage());
+            Log.e("Exception while getting FileInputStream " + e.getMessage());
             return null;
         }
 
@@ -326,7 +301,7 @@ public class Utils {
             try {
                 is.close();
             } catch (IOException e) {
-                Log.e(TAG, "Exception on closing MD5 input stream " + e.getMessage());
+                Log.e("Exception on closing MD5 input stream " + e.getMessage());
             }
         }
     }
@@ -350,7 +325,7 @@ public class Utils {
             }
             return s.toString().trim();
         } catch (IOException e) {
-            Log.e(TAG, "Unable to read " + file);
+            Log.e("Unable to read " + file);
         } finally {
             try {
                 if (input != null) input.close();
@@ -457,7 +432,7 @@ public class Utils {
 
     public static boolean hasProp(String key, RootUtils.SU su) {
         try {
-            return su.runCommand("getprop | grep " + key).split("]:").length > 1;
+            return !su.runCommand("getprop | grep " + key).isEmpty();
         } catch (Exception ignored) {
             return false;
         }
@@ -475,7 +450,7 @@ public class Utils {
             writer.write(text);
             writer.flush();
         } catch (IOException e) {
-            Log.e(TAG, "Failed to write " + path);
+            Log.e("Failed to write " + path);
         } finally {
             try {
                 if (writer != null) writer.close();
@@ -494,31 +469,30 @@ public class Utils {
     }
 
     public static String readFile(String file, RootUtils.SU su) {
-        if (su != null) return new RootFile(file, su).readFile();
+        if (su != null) {
+            return new RootFile(file, su).readFile();
+        }
 
-        StringBuilder s = null;
-        FileReader fileReader = null;
         BufferedReader buf = null;
         try {
-            fileReader = new FileReader(file);
-            buf = new BufferedReader(fileReader);
+            buf = new BufferedReader(new FileReader(file));
 
+            StringBuilder stringBuilder = new StringBuilder();
             String line;
-            s = new StringBuilder();
-            while ((line = buf.readLine()) != null) s.append(line).append("\n");
-        } catch (FileNotFoundException ignored) {
-            Log.e(TAG, "File does not exist " + file);
-        } catch (IOException e) {
-            Log.e(TAG, "Failed to read " + file);
+            while ((line = buf.readLine()) != null) {
+                stringBuilder.append(line).append("\n");
+            }
+
+            return stringBuilder.toString().trim();
+        } catch (IOException ignored) {
         } finally {
             try {
-                if (fileReader != null) fileReader.close();
                 if (buf != null) buf.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        return s == null ? null : s.toString().trim();
+        return null;
     }
 
     public static boolean existFile(String file) {

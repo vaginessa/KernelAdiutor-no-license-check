@@ -94,7 +94,7 @@ public class CustomControlsFragment extends RecyclerViewFragment {
                             showControls();
                             break;
                         case 1:
-                            if (Utils.DONATED) {
+                            if (Utils.isDonated(requireActivity())) {
                                 Intent intent = new Intent(getActivity(), FilePickerActivity.class);
                                 intent.putExtra(FilePickerActivity.PATH_INTENT,
                                         Environment.getExternalStorageDirectory().toString());
@@ -247,7 +247,7 @@ public class CustomControlsFragment extends RecyclerViewFragment {
     }
 
     private CardView getCard(final Controls.ControlItem controlItem) {
-        CardView cardView = new CardView();
+        CardView cardView = new CardView(getActivity());
         cardView.setOnMenuListener((cardView1, popupMenu) -> {
             Menu menu = popupMenu.getMenu();
             menu.add(Menu.NONE, 0, Menu.NONE, getString(R.string.edit));
@@ -463,11 +463,6 @@ public class CustomControlsFragment extends RecyclerViewFragment {
             mImportingThread.cancel(true);
             mImportingThread = null;
         }
-    }
-
-    @Override
-    protected boolean showAd() {
-        return true;
     }
 
 }

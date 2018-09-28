@@ -39,7 +39,6 @@ import com.grarak.kerneladiutor.BuildConfig;
 import com.grarak.kerneladiutor.R;
 import com.grarak.kerneladiutor.utils.AppSettings;
 import com.grarak.kerneladiutor.utils.Themes;
-import com.grarak.kerneladiutor.utils.Utils;
 import com.grarak.kerneladiutor.utils.ViewUtils;
 
 import java.util.Locale;
@@ -49,7 +48,7 @@ import io.fabric.sdk.android.Fabric;
 /**
  * Created by willi on 14.04.16.
  */
-public class BaseActivity extends AppCompatActivity {
+public abstract class BaseActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -59,9 +58,8 @@ public class BaseActivity extends AppCompatActivity {
         }
 
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
-        Utils.DARK_THEME = Themes.isDarkTheme(this);
-        Themes.Theme theme = Themes.getTheme(this, Utils.DARK_THEME);
-        if (Utils.DARK_THEME) {
+        Themes.Theme theme = Themes.getTheme(this, Themes.isDarkTheme(this));
+        if (Themes.isDarkTheme(this)) {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         } else {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);

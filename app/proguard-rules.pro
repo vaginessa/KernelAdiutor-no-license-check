@@ -15,18 +15,13 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
--keepattributes Signature,*Annotation*
+-keepattributes Signature,*Annotation*,SourceFile,LineNumberTable
 
 -keep class com.grarak.kerneladiutor.** { *; }
 
 -keep class com.bumptech.glide.** { *; }
 
--keep class com.google.android.gms.** { *; }
--keep class com.google.ads.** { *; }
-
 -keep class com.google.android.apps.dashclock.** { *; }
-
--keep class com.google.firebase.** { *; }
 
 -keep public class com.mattprecious.swirl.** { *; }
 
