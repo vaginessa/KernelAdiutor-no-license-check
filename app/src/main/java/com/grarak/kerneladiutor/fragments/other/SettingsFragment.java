@@ -199,16 +199,8 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
                 Utils.setStartActivity(checked, requireActivity());
                 return true;
             case KEY_HIDE_BANNER:
-                if (!Utils.isDonated(requireActivity())) {
-                    ViewUtils.dialogDonate(getActivity()).show();
-                    return false;
-                }
                 return true;
             case KEY_SECTIONS_ICON:
-                if (!Utils.isDonated(requireActivity())) {
-                    ViewUtils.dialogDonate(getActivity()).show();
-                    return false;
-                }
                 ((NavigationActivity) requireActivity()).appendFragments();
                 return true;
             default:
@@ -243,27 +235,15 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
         String key = preference.getKey();
         switch (key) {
             case KEY_BANNER_RESIZER:
-                if (Utils.isDonated(requireActivity())) {
-                    Intent intent = new Intent(getActivity(), BannerResizerActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    startActivity(intent);
-                } else {
-                    ViewUtils.dialogDonate(getActivity()).show();
-                }
+                Intent intent = new Intent(getActivity(), BannerResizerActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(intent);
                 return true;
             case KEY_PRIMARY_COLOR:
-                if (Utils.isDonated(requireActivity())) {
-                    colorDialog(true);
-                } else {
-                    ViewUtils.dialogDonate(getActivity()).show();
-                }
+                colorDialog(true);
                 return true;
             case KEY_ACCENT_COLOR:
-                if (Utils.isDonated(requireActivity())) {
-                    colorDialog(false);
-                } else {
-                    ViewUtils.dialogDonate(getActivity()).show();
-                }
+                colorDialog(false);
                 return true;
             case KEY_APPLY_ON_BOOT_TEST:
                 if (Utils.isServiceRunning(ApplyOnBootService.class, requireActivity())) {

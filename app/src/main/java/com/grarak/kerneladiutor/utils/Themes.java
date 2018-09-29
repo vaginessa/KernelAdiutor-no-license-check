@@ -74,7 +74,7 @@ public class Themes {
         } else {
             theme = sThemes.get(savedTheme);
         }
-        if (theme == null || !Utils.isDonated(context)) {
+        if (theme == null) {
             if (darkTheme) {
                 theme = sThemesDark.get(DEFAULT_THEME);
             } else {
